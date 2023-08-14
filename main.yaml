@@ -1,0 +1,55 @@
+---
+vars:
+  ANSIBLE_DIR: "{{.ROOT_DIR}}/ansible"
+  source_key: "./.ssh/id_ed25519"
+  dest_key: "{{ lookup('env', 'HOME') }}/.ssh/id_ed25519"
+
+vars_files:
+  - default.config.yml
+# dotenv: [".config.env"]
+
+env:
+  # KUBECONFIG: "{{.ROOT_DIR}}/kubeconfig"
+  # SOPS_AGE_KEY_FILE: ~/.config/sops/age/keys.txt
+
+includes:
+  ansible: .taskfiles/AnsibleTasks.yml
+
+tasks:
+  init:
+    desc: Initialize workstation dependencies with Brew
+    cmds:
+      - brew install {{.DEPS}} {{.CLI_ARGS}}
+    preconditions:
+      - sh: command -v brew
+        msg: |
+          Homebrew is not installed. Using MacOS, Linux or WSL?
+          Head over to https://brew.sh to get up and running.
+    vars:
+      DEPS: >-
+        ansible
+        direnv
+        go-task
+        terraform
+        awscli
+        fzf
+        git
+        node
+        neovim
+        nvm
+        pyenv
+        stow
+        tmux
+        tree-sitter
+
+  ssh:
+    import_tasks: "{{.ANSIBLE_DIR}}/tasks/ssh.yml"
+    tags: ["ssh", "dotfiles"]
+
+  terminal:
+    import_tasks: "{{.ANSIBLE_DIR}}/tasks/terminal.yml"
+    tags: ["terminal"]
+
+  dotfiles:
+    import_tasks: "{{.ANSIBLE_DIR}}/tasks/dotfiles.yml"
+    tags: ["dotfiles"]
