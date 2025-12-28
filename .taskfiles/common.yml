@@ -17,6 +17,7 @@ tasks:
     cmds:
       - task: install-claude
       - task: install-beads
+      - task: install-opencode
 
   # Helper task: Install tool from curl script
   install-tool-curl:
@@ -47,6 +48,14 @@ tasks:
         vars:
           TOOL_NAME: bd
           INSTALL_URL: https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh
+
+  install-opencode:
+    internal: true
+    cmds:
+      - task: install-tool-curl
+        vars:
+          TOOL_NAME: opencode
+          INSTALL_URL: https://raw.githubusercontent.com/anthropics/opencode/main/install.sh
 
   terminal:
     desc: Setup terminal environment (zsh, oh-my-zsh, zgenom)
