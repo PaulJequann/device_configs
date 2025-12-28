@@ -122,6 +122,11 @@ tasks:
     cmds:
       - task: common:terminal
 
+  sync:
+    desc: Sync device_configs and dotfiles from remote repositories
+    cmds:
+      - task: common:sync
+
   gui:
     desc: Install GUI applications
     cmds:

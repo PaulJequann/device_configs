@@ -19,6 +19,26 @@ tasks:
       - task: install-beads
       - task: install-opencode
 
+  sync:
+    desc: Sync device_configs and dotfiles from remote repositories
+    cmds:
+      - |
+        echo "🔄 Syncing device_configs..."
+        git -C "{{.ROOT_DIR}}" pull --rebase origin main 2>/dev/null || echo "⚠️  Failed to sync device_configs (check git status)"
+      - |
+        if [ -d "{{.DOTFILES_DIR}}" ]; then
+          echo "🔄 Syncing dotfiles..."
+          git -C "{{.DOTFILES_DIR}}" pull --rebase origin main 2>/dev/null || echo "⚠️  Failed to sync dotfiles (check git status)"
+          echo "🔗 Re-running dotfiles bootstrap..."
+          bash "{{.DOTFILES_DIR}}/bootstrap.sh" 2>/dev/null || echo "⚠️  Bootstrap failed"
+        else
+          echo "📁 Dotfiles not found, run 'task dotfiles' first"
+        fi
+      - |
+        echo ""
+        echo "✓ Sync complete! Installing any new packages..."
+        task common:packages
+
   # Helper task: Install tool from curl script
   install-tool-curl:
     internal: true
