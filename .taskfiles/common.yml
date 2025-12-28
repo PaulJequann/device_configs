@@ -10,14 +10,27 @@ tasks:
     cmds:
       - task: terminal
       - task: dotfiles
+      - task: packages
       - echo "Common setup complete!"
 
   packages:
     desc: Install common CLI packages
     cmds:
-      - task: install-claude
-      - task: install-beads
-      - task: install-opencode
+      - |
+        if ! command -v claude &> /dev/null; then
+          echo "🔧 Installing claude..."
+          curl -fsSL https://raw.githubusercontent.com/anthropics/claude-code/main/install.sh | bash > /dev/null 2>&1
+        fi
+      - |
+        if ! command -v bd &> /dev/null; then
+          echo "🔧 Installing beads..."
+          curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash > /dev/null 2>&1
+        fi
+      - |
+        if ! command -v opencode &> /dev/null; then
+          echo "🔧 Installing opencode..."
+          curl -fsSL https://opencode.ai/install | bash > /dev/null 2>&1
+        fi
 
   sync:
     desc: Sync device_configs and dotfiles from remote repositories
@@ -38,44 +51,6 @@ tasks:
         echo ""
         echo "✓ Sync complete! Installing any new packages..."
         task common:packages
-
-  # Helper task: Install tool from curl script
-  install-tool-curl:
-    internal: true
-    vars:
-      TOOL_NAME: ""
-      INSTALL_URL: ""
-    cmds:
-      - |
-        if ! command -v {{.TOOL_NAME}} &> /dev/null; then
-          echo "🔧 Installing {{.TOOL_NAME}}..."
-          curl -fsSL {{.INSTALL_URL}} | bash > /dev/null 2>&1
-        fi
-
-  # Specific tool installations using the helper
-  install-claude:
-    internal: true
-    cmds:
-      - task: install-tool-curl
-        vars:
-          TOOL_NAME: claude
-          INSTALL_URL: https://raw.githubusercontent.com/anthropics/claude-code/main/install.sh
-
-  install-beads:
-    internal: true
-    cmds:
-      - task: install-tool-curl
-        vars:
-          TOOL_NAME: bd
-          INSTALL_URL: https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh
-
-  install-opencode:
-    internal: true
-    cmds:
-      - task: install-tool-curl
-        vars:
-          TOOL_NAME: opencode
-          INSTALL_URL: https://raw.githubusercontent.com/anthropics/opencode/main/install.sh
 
   terminal:
     desc: Setup terminal environment (zsh, oh-my-zsh, zgenom)
