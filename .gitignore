@@ -1,0 +1,37 @@
+# SSH keys and secrets
+.ssh/
+*.pem
+*.key
+id_*
+*.pub
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary files
+*.log
+*.tmp
+.task/
+
+# Local configuration overrides
+local.yml
+*.local.yml
+.env
+.env.local
+
+# Cache directories
+.cache/
+__pycache__/
+
+# Backup files
+*.bak
+*.backup

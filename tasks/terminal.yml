@@ -1,6 +1,0 @@
-- name: Install ohmyzsh
-  shell: sh -c "$(curl -fsSL https://raw.github.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
-- name: Install zgenom
-  ansible.builtin.git:
-    repo: 'https://github.com/jandamm/zgenom.git'
-    dest: '~/.zgenom'

@@ -1,0 +1,76 @@
+version: '3'
+
+tasks:
+  setup:
+    desc: Arch Linux system setup
+    cmds:
+      - task: packages
+      - task: gui
+      - echo "Arch Linux setup complete!"
+
+  packages:
+    desc: Install essential packages via pacman
+    cmds:
+      - |
+        echo "Updating system..."
+        sudo pacman -Syu --noconfirm
+      - |
+        # Package list defined in configs/packages.yml
+        echo "Installing essential packages..."
+        sudo pacman -S --needed --noconfirm \
+          git \
+          stow \
+          zsh \
+          neovim \
+          tmux \
+          fzf \
+          ripgrep \
+          fd \
+          bat \
+          eza \
+          zoxide \
+          docker \
+          base-devel
+      - |
+        # Enable and start Docker service
+        sudo systemctl enable docker
+        sudo systemctl start docker
+        sudo usermod -aG docker $USER || true
+        echo "Note: Log out and back in for Docker group membership to take effect"
+
+  gui:
+    desc: Install GUI applications
+    cmds:
+      - |
+        echo "Installing GUI applications..."
+        sudo pacman -S --needed --noconfirm \
+          alacritty \
+          discord \
+          chromium
+      - |
+        echo ""
+        echo "Note: For Google Chrome and Microsoft Edge, use AUR:"
+        echo "  yay -S google-chrome"
+        echo "  yay -S microsoft-edge-stable-bin"
+      - |
+        # Install yay if not present
+        if ! command -v yay &> /dev/null; then
+          echo ""
+          echo "Installing yay (AUR helper)..."
+          cd /tmp
+          git clone https://aur.archlinux.org/yay.git
+          cd yay
+          makepkg -si --noconfirm
+          cd ~
+        fi
+
+  update:
+    desc: Update all pacman packages
+    cmds:
+      - sudo pacman -Syu --noconfirm
+
+  clean:
+    desc: Clean pacman cache
+    cmds:
+      - sudo pacman -Scc --noconfirm
+      - if command -v yay &> /dev/null; then yay -Sc --noconfirm; fi

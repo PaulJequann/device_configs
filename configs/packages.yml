@@ -1,0 +1,47 @@
+# Shared package lists across all platforms
+# Platform-specific taskfiles translate these to their package manager syntax
+
+essential_cli:
+  - git
+  - stow
+  - zsh
+  - neovim
+  - tmux
+  - fzf
+  - ripgrep
+  - fd        # (fd-find on apt)
+  - bat       # (batcat on apt)
+  - eza
+  - zoxide
+  - docker
+
+# Platform-specific packages
+platform_specific:
+  wsl:
+    - curl
+    - wget
+    - build-essential
+
+  arch:
+    - base-devel
+
+  macos: []  # No additional packages
+
+  linux: []  # Generic Linux - no additional
+
+# GUI applications
+gui_apps:
+  macos:
+    - alacritty
+    - discord
+    - google-chrome
+    - microsoft-edge
+
+  arch:
+    - alacritty
+    - discord
+    - chromium
+
+  arch_aur:  # Requires yay
+    - google-chrome
+    - microsoft-edge-stable-bin

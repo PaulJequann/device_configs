@@ -1,0 +1,167 @@
+version: '3'
+
+vars:
+  DOTFILES_REPO: "git@github.com:PaulJequann/dotfiles.git"
+  DOTFILES_DIR: "{{.HOME}}/.dotfiles"
+
+includes:
+  common: .taskfiles/common.yml
+  macos:
+    taskfile: .taskfiles/macos.yml
+    platforms: [darwin]
+  linux:
+    taskfile: .taskfiles/linux.yml
+    platforms: [linux]
+  wsl:
+    taskfile: .taskfiles/wsl.yml
+    platforms: [linux]
+  arch:
+    taskfile: .taskfiles/arch.yml
+    platforms: [linux]
+
+tasks:
+  default:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  detect:
+    desc: Detect current platform and environment
+    silent: true
+    cmds:
+      - |
+        echo "Platform: {{OS}}/{{ARCH}}"
+        if [ -f /proc/version ] && grep -qi microsoft /proc/version; then
+          echo "Environment: WSL2"
+        elif [ "{{OS}}" = "darwin" ]; then
+          echo "Environment: macOS"
+        elif [ -f /etc/arch-release ]; then
+          echo "Environment: Arch Linux"
+        else
+          echo "Environment: Linux"
+        fi
+
+  init:
+    desc: Initial setup - Install task if needed
+    cmds:
+      - |
+        if ! command -v task &> /dev/null; then
+          echo "Installing go-task..."
+          {{if eq OS "darwin"}}
+          if ! command -v brew &> /dev/null; then
+            echo "Installing Homebrew..."
+            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          fi
+          brew install go-task
+          {{else if eq OS "linux"}}
+          if command -v apt-get &> /dev/null; then
+            echo "Using apt to install task..."
+            sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+          elif command -v dnf &> /dev/null; then
+            echo "Using dnf to install task..."
+            sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+          elif command -v pacman &> /dev/null; then
+            echo "Using pacman to install task..."
+            sudo pacman -S --noconfirm go-task
+          else
+            echo "No supported package manager found. Installing to ~/.local/bin..."
+            sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
+          fi
+          {{end}}
+        else
+          echo "go-task already installed ($(task --version))"
+        fi
+
+  setup:
+    desc: Full system setup for current platform
+    cmds:
+      - task: detect
+      - |
+        {{if eq OS "darwin"}}
+        task macos:setup
+        {{else if eq OS "linux"}}
+        if [ -f /proc/version ] && grep -qi microsoft /proc/version; then
+          task wsl:setup
+        elif [ -f /etc/arch-release ]; then
+          task arch:setup
+        else
+          task linux:setup
+        fi
+        {{end}}
+      - task: common:setup
+
+  packages:
+    desc: Install packages for current platform
+    cmds:
+      - |
+        {{if eq OS "darwin"}}
+        task macos:packages
+        {{else if eq OS "linux"}}
+        if [ -f /proc/version ] && grep -qi microsoft /proc/version; then
+          task wsl:packages
+        elif [ -f /etc/arch-release ]; then
+          task arch:packages
+        else
+          task linux:packages
+        fi
+        {{end}}
+      - task: common:packages
+
+  dotfiles:
+    desc: Setup dotfiles
+    cmds:
+      - task: common:dotfiles
+
+  ssh:
+    desc: Generate SSH key for this device
+    cmds:
+      - task: common:ssh
+
+  terminal:
+    desc: Setup terminal (zsh, tmux, etc)
+    cmds:
+      - task: common:terminal
+
+  gui:
+    desc: Install GUI applications
+    cmds:
+      - |
+        {{if eq OS "darwin"}}
+        task macos:gui
+        {{else if eq OS "linux"}}
+        if [ -f /proc/version ] && grep -qi microsoft /proc/version; then
+          echo "GUI apps managed via Windows (use 'task wsl:gui' for recommendations)"
+        elif [ -f /etc/arch-release ]; then
+          task arch:gui
+        else
+          task linux:gui
+        fi
+        {{end}}
+
+  update:
+    desc: Update all packages
+    cmds:
+      - |
+        {{if eq OS "darwin"}}
+        task macos:update
+        {{else if eq OS "linux"}}
+        if [ -f /etc/arch-release ]; then
+          task arch:update
+        else
+          task linux:update
+        fi
+        {{end}}
+
+  clean:
+    desc: Clean up caches and temporary files
+    cmds:
+      - |
+        {{if eq OS "darwin"}}
+        task macos:clean
+        {{else if eq OS "linux"}}
+        if [ -f /etc/arch-release ]; then
+          task arch:clean
+        else
+          task linux:clean
+        fi
+        {{end}}

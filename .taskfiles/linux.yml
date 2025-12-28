@@ -1,0 +1,119 @@
+version: '3'
+
+tasks:
+  # Helper: Detect package manager
+  detect-pkg-manager:
+    internal: true
+    silent: true
+    cmds:
+      - |
+        if command -v apt-get &> /dev/null; then
+          echo "apt"
+        elif command -v dnf &> /dev/null; then
+          echo "dnf"
+        elif command -v pacman &> /dev/null; then
+          echo "pacman"
+        else
+          echo "unknown"
+        fi
+
+  setup:
+    desc: Generic Linux system setup
+    cmds:
+      - task: packages
+      - echo "Generic Linux setup complete!"
+
+  packages:
+    desc: Install essential packages (attempts to detect package manager)
+    cmds:
+      - |
+        PKG_MGR=$(task detect-pkg-manager)
+        case "$PKG_MGR" in
+          apt)
+            echo "Detected apt package manager"
+            task wsl:packages
+            ;;
+          dnf)
+            echo "Detected dnf package manager (Fedora/RHEL)"
+            task dnf-packages
+            ;;
+          pacman)
+            echo "Detected pacman - use 'task arch:packages' instead"
+            task arch:packages
+            ;;
+          *)
+            echo "No supported package manager detected"
+            echo "Please install packages manually:"
+            echo "  - git, stow, zsh, neovim, tmux, fzf, ripgrep, fd, bat, eza, zoxide, docker"
+            exit 1
+            ;;
+        esac
+
+  dnf-packages:
+    desc: Install packages via dnf (Fedora/RHEL)
+    cmds:
+      - |
+        # Package list defined in configs/packages.yml
+        echo "Installing essential packages via dnf..."
+        sudo dnf install -y \
+          git \
+          stow \
+          zsh \
+          neovim \
+          tmux \
+          fzf \
+          ripgrep \
+          fd-find \
+          bat \
+          zoxide \
+          docker
+      - |
+        # Install eza if available
+        if ! command -v eza &> /dev/null; then
+          echo "Installing eza..."
+          sudo dnf install -y eza || echo "eza not available in repos, skipping"
+        fi
+
+  gui:
+    desc: Install GUI applications
+    cmds:
+      - |
+        if command -v dnf &> /dev/null; then
+          sudo dnf install -y alacritty discord chromium
+        else
+          echo "GUI installation not supported for this distro"
+        fi
+
+  update:
+    desc: Update all packages
+    cmds:
+      - |
+        PKG_MGR=$(task detect-pkg-manager)
+        case "$PKG_MGR" in
+          apt)
+            sudo apt update && sudo apt upgrade -y
+            ;;
+          dnf)
+            sudo dnf upgrade -y
+            ;;
+          pacman)
+            sudo pacman -Syu --noconfirm
+            ;;
+        esac
+
+  clean:
+    desc: Clean package cache
+    cmds:
+      - |
+        PKG_MGR=$(task detect-pkg-manager)
+        case "$PKG_MGR" in
+          apt)
+            sudo apt clean && sudo apt autoremove -y
+            ;;
+          dnf)
+            sudo dnf clean all
+            ;;
+          pacman)
+            sudo pacman -Scc --noconfirm
+            ;;
+        esac
