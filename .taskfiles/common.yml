@@ -31,6 +31,11 @@ tasks:
           echo "🔧 Installing opencode..."
           curl -fsSL https://opencode.ai/install | bash > /dev/null 2>&1
         fi
+      - |
+        if ! command -v pnpm &> /dev/null; then
+          echo "🔧 Installing pnpm..."
+          curl -fsSL https://get.pnpm.io/install.sh | sh - > /dev/null 2>&1
+        fi
 
   sync:
     desc: Sync device_configs and dotfiles from remote repositories
