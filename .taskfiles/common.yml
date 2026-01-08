@@ -36,6 +36,11 @@ tasks:
           echo "🔧 Installing pnpm..."
           curl -fsSL https://get.pnpm.io/install.sh | sh - > /dev/null 2>&1
         fi
+      - |
+        if ! command -v fnm &> /dev/null; then
+          echo "🔧 Installing fnm..."
+          curl -fsSL https://fnm.vercel.app/install | bash > /dev/null 2>&1
+        fi
 
   sync:
     desc: Sync device_configs and dotfiles from remote repositories
