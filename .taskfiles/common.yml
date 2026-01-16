@@ -14,28 +14,54 @@ tasks:
       - echo "✓ Common setup complete!"
 
   packages:
-    desc: Install all CLI packages via Homebrew
+    desc: Install all packages via Homebrew
+    silent: true
     cmds:
-      # Core CLI tools
       - |
-        echo "📦 Installing CLI packages via Homebrew..."
-        brew install git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide bun go-task gemini-cli
-      # Beads from tap
+        echo "📦 Installing core CLI tools..."
+        brew install git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide go-task gemini-cli
       - |
-        echo "📦 Installing beads..."
-        brew tap steveyegge/beads 2>/dev/null || true
-        brew install bd beads_viewer 2>/dev/null || brew upgrade bd beads_viewer 2>/dev/null || true
-      # Codexbar from tap
-      - |
-        echo "📦 Installing codexbar..."
-        brew tap steipete/tap 2>/dev/null || true
-        brew install steipete/tap/codexbar 2>/dev/null || brew upgrade steipete/tap/codexbar 2>/dev/null || true
-      # Opencode (no brew formula available)
-      - |
-        if ! command -v opencode &> /dev/null; then
-          echo "🔧 Installing opencode..."
-          curl -fsSL https://opencode.ai/install | bash > /dev/null 2>&1
+        echo "📦 Installing bun via oven-sh/bun tap..."
+        brew tap oven-sh/bun 2>/dev/null || true
+        if brew list oven-sh/bun/bun &>/dev/null 2>&1; then
+          brew upgrade oven-sh/bun/bun 2>/dev/null || true
+        else
+          brew install oven-sh/bun/bun
         fi
+      - |
+        echo "📦 Installing uv..."
+        if brew list uv &>/dev/null 2>&1; then
+          brew upgrade uv 2>/dev/null || true
+        else
+          brew install uv
+        fi
+      - |
+        echo "📦 Installing beads tools via steveyegge/beads tap..."
+        brew tap steveyegge/beads 2>/dev/null || true
+        if brew list bd &>/dev/null 2>&1; then
+          brew upgrade bd 2>/dev/null || true
+        else
+          brew install steveyegge/beads/bd
+        fi
+        if brew list beads_viewer &>/dev/null 2>&1; then
+          brew upgrade beads_viewer 2>/dev/null || true
+        else
+          brew install beads_viewer
+        fi
+      - |
+        echo "📦 Installing opencode..."
+        if command -v opencode &>/dev/null; then
+          echo "  ✓ opencode already installed"
+        else
+          echo "  Installing opencode via Homebrew..."
+          if brew list opencode &>/dev/null 2>&1; then
+            brew upgrade opencode 2>/dev/null || true
+          else
+            brew install opencode
+          fi
+        fi
+      - |
+        echo "✓ All packages installed/updated!"
 
   gui:
     desc: Install GUI applications

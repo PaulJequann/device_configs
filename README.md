@@ -143,6 +143,21 @@ Run `task dotfiles` to clone and stow.
 └── README.md                     # This file
 ```
 
+## Migration from Curl-Based Setup
+
+If you previously installed tools via curl, use the migration script to move them under Homebrew management:
+
+```bash
+./migrate-to-brew.sh
+```
+
+This script:
+- Detects curl-based installations of: `bd`, `beads_viewer`, `bun`, `uv`, `opencode`
+- Uninstalls them (with confirmation)
+- Reinstalls via Homebrew
+- Verifies each tool works
+- Optionally cleans up old directories (`~/.bun`, `~/.uv`, etc.)
+
 ## Syncing Changes
 
 When you add new tools to this repo and want to update other machines:
