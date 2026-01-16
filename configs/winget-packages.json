@@ -8,6 +8,9 @@
           "PackageIdentifier": "Microsoft.WindowsTerminal"
         },
         {
+          "PackageIdentifier": "Microsoft.VisualStudioCode"
+        },
+        {
           "PackageIdentifier": "Google.Chrome"
         },
         {
@@ -32,7 +35,22 @@
           "PackageIdentifier": "MoonlightGameStreamingProject.Moonlight"
         },
         {
-          "PackageIdentifier": "Microsoft.VisualStudioCode"
+          "PackageIdentifier": "Anthropic.ClaudeCode"
+        },
+        {
+          "PackageIdentifier": "Google.Antigravity"
+        },
+        {
+          "PackageIdentifier": "Anysphere.Cursor"
+        },
+        {
+          "PackageIdentifier": "Zed.Zed"
+        },
+        {
+          "PackageIdentifier": "Ollama.Ollama"
+        },
+        {
+          "PackageIdentifier": "Bruno.Bruno"
         }
       ],
       "SourceDetails": {

@@ -11,39 +11,64 @@ tasks:
       - task: terminal
       - task: dotfiles
       - task: packages
-      - echo "Common setup complete!"
+      - echo "✓ Common setup complete!"
 
   packages:
-    desc: Install common CLI packages
+    desc: Install all CLI packages via Homebrew
     cmds:
+      # Core CLI tools
       - |
-        if ! command -v claude &> /dev/null; then
-          echo "🔧 Installing claude..."
-          curl -fsSL https://raw.githubusercontent.com/anthropics/claude-code/main/install.sh | bash > /dev/null 2>&1
-        fi
+        echo "📦 Installing CLI packages via Homebrew..."
+        brew install git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide bun go-task gemini-cli
+      # Beads from tap
       - |
-        if ! command -v bd &> /dev/null; then
-          echo "🔧 Installing beads..."
-          curl -fsSL https://raw.githubusercontent.com/steveyegge/beads/main/scripts/install.sh | bash > /dev/null 2>&1
-        fi
+        echo "📦 Installing beads..."
+        brew tap steveyegge/beads 2>/dev/null || true
+        brew install bd beads_viewer 2>/dev/null || brew upgrade bd beads_viewer 2>/dev/null || true
+      # Codexbar from tap
+      - |
+        echo "📦 Installing codexbar..."
+        brew tap steipete/tap 2>/dev/null || true
+        brew install steipete/tap/codexbar 2>/dev/null || brew upgrade steipete/tap/codexbar 2>/dev/null || true
+      # Opencode (no brew formula available)
       - |
         if ! command -v opencode &> /dev/null; then
           echo "🔧 Installing opencode..."
           curl -fsSL https://opencode.ai/install | bash > /dev/null 2>&1
         fi
+
+  gui:
+    desc: Install GUI applications
+    cmds:
       - |
-        if ! command -v pnpm &> /dev/null; then
-          echo "🔧 Installing pnpm..."
-          curl -fsSL https://get.pnpm.io/install.sh | sh - > /dev/null 2>&1
+        {{if eq OS "darwin"}}
+        echo "📦 Installing macOS GUI apps via Homebrew Cask..."
+        brew install --cask claude-code antigravity cursor visual-studio-code zed alacritty discord google-chrome microsoft-edge ollama bruno docker 2>/dev/null || true
+        brew install --cask steipete/tap/codexbar 2>/dev/null || true
+        {{else}}
+        echo ""
+        echo "════════════════════════════════════════════════════════════════"
+        echo "📋 Windows GUI Applications"
+        echo "════════════════════════════════════════════════════════════════"
+        echo ""
+        echo "Run this command in PowerShell on Windows host:"
+        echo ""
+        WINGET_JSON="configs/winget-packages.json"
+        WINDOWS_PATH=$(wslpath -w "$(pwd)/$WINGET_JSON" 2>/dev/null || echo "")
+        if [ -n "$WINDOWS_PATH" ]; then
+          echo "   winget import -i '$WINDOWS_PATH' --accept-package-agreements --accept-source-agreements"
+        else
+          echo "   Navigate to device_configs folder and run: winget import -i configs/winget-packages.json"
         fi
-      - |
-        if ! command -v fnm &> /dev/null; then
-          echo "🔧 Installing fnm..."
-          curl -fsSL https://fnm.vercel.app/install | bash > /dev/null 2>&1
-        fi
+        echo ""
+        echo "Includes: Windows Terminal, VS Code, Chrome, Edge, Discord, Docker Desktop,"
+        echo "Claude Code, Antigravity, Cursor, Zed, Ollama, Bruno, Alacritty, Steam,"
+        echo "GeForce Now, Moonlight"
+        echo ""
+        {{end}}
 
   sync:
-    desc: Sync device_configs and dotfiles from remote repositories
+    desc: Sync device_configs and dotfiles, install new packages
     cmds:
       - |
         echo "🔄 Syncing device_configs..."
@@ -147,19 +172,26 @@ tasks:
         echo "=== System Check ==="
         echo "OS: {{OS}}/{{ARCH}}"
         echo ""
-        echo "=== Required Tools ==="
-        for cmd in git stow neovim tmux fzf; do
+        echo "=== Homebrew ==="
+        if command -v brew &> /dev/null; then
+          echo "✓ Homebrew installed ($(brew --version | head -1))"
+        else
+          echo "✗ Homebrew not installed"
+        fi
+        echo ""
+        echo "=== CLI Tools ==="
+        for cmd in git stow zsh neovim tmux fzf rg fd bat eza zoxide bun task gemini; do
           if command -v $cmd &> /dev/null; then
-            echo "✓ $cmd ($(command -v $cmd))"
+            echo "✓ $cmd"
           else
             echo "✗ $cmd (not found)"
           fi
         done
         echo ""
-        echo "=== Optional Tools ==="
-        for cmd in docker claude opencode; do
+        echo "=== AI Coding Tools ==="
+        for cmd in claude opencode bd; do
           if command -v $cmd &> /dev/null; then
-            echo "✓ $cmd ($(command -v $cmd))"
+            echo "✓ $cmd"
           else
             echo "○ $cmd (not installed)"
           fi

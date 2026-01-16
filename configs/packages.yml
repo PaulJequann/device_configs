@@ -1,7 +1,8 @@
-# Shared package lists across all platforms
-# Platform-specific taskfiles translate these to their package manager syntax
+# Package lists for device_configs
+# All packages installed via Homebrew across all platforms
 
-essential_cli:
+# CLI Tools (brew install)
+cli_tools:
   - git
   - stow
   - zsh
@@ -9,39 +10,63 @@ essential_cli:
   - tmux
   - fzf
   - ripgrep
-  - fd        # (fd-find on apt)
-  - bat       # (batcat on apt)
+  - fd
+  - bat
   - eza
   - zoxide
+  - bun
+  - go-task
+  - gemini-cli
+
+# CLI Tools from taps
+cli_taps:
+  - steveyegge/beads/bd
+  - steveyegge/beads/beads_viewer
+  - steipete/tap/codexbar
+
+# CLI Tools via curl (no Homebrew formula)
+cli_curl:
+  - opencode  # curl -fsSL https://opencode.ai/install | bash
+
+# GUI Apps - macOS (brew install --cask)
+gui_macos:
+  - claude-code
+  - antigravity
+  - cursor
+  - visual-studio-code
+  - zed
+  - alacritty
+  - discord
+  - google-chrome
+  - microsoft-edge
+  - ollama
+  - bruno
   - docker
+  - steipete/tap/codexbar  # cask version
 
-# Platform-specific packages
-platform_specific:
-  wsl:
-    - curl
-    - wget
-    - build-essential
+# GUI Apps - Windows/WSL (winget import)
+# See configs/winget-packages.json for full list
+gui_windows:
+  - Microsoft.WindowsTerminal
+  - Microsoft.VisualStudioCode
+  - Google.Chrome
+  - Microsoft.Edge
+  - Discord.Discord
+  - Docker.DockerDesktop
+  - Alacritty.Alacritty
+  - Valve.Steam
+  - Nvidia.GeForceNow
+  - MoonlightGameStreamingProject.Moonlight
+  - Anthropic.ClaudeCode
+  - Google.Antigravity
+  - Anysphere.Cursor
+  - Zed.Zed
+  - Ollama.Ollama
+  - Bruno.Bruno
 
-  arch:
-    - base-devel
-
-  macos: []  # No additional packages
-
-  linux: []  # Generic Linux - no additional
-
-# GUI applications
-gui_apps:
-  macos:
-    - alacritty
-    - discord
-    - google-chrome
-    - microsoft-edge
-
-  arch:
-    - alacritty
-    - discord
-    - chromium
-
-  arch_aur:  # Requires yay
-    - google-chrome
-    - microsoft-edge-stable-bin
+# GUI Apps - Arch Linux (yay/AUR)
+gui_arch_aur:
+  - google-chrome
+  - microsoft-edge-stable-bin
+  - cursor-bin
+  - visual-studio-code-bin

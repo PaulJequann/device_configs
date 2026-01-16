@@ -1,68 +1,22 @@
 version: '3'
 
 tasks:
+  check-wsl:
+    desc: Verify running in WSL2
+    internal: true
+    cmds:
+      - |
+        if ! grep -qi microsoft /proc/version 2>/dev/null; then
+          echo "Error: This doesn't appear to be a WSL2 environment"
+          exit 1
+        fi
+        echo "✓ Detected WSL2 environment"
+
   setup:
     desc: WSL2 system setup
     cmds:
       - task: check-wsl
-      - task: packages
-      - task: gui
       - task: summary
-
-  check-wsl:
-    desc: Verify running in WSL2
-    silent: true
-    cmds:
-      - |
-        if [ ! -f /proc/version ] || ! grep -qi microsoft /proc/version; then
-          echo "Warning: This doesn't appear to be WSL2"
-          exit 1
-        fi
-        echo "Detected WSL2 environment"
-
-  packages:
-    desc: Install essential packages via apt
-    cmds:
-      - sudo apt update > /dev/null 2>&1
-      - |
-        # Package list defined in configs/packages.yml
-        echo "📦 Installing essential packages..."
-        sudo apt install -y -qq \
-          git \
-          stow \
-          zsh \
-          neovim \
-          tmux \
-          fzf \
-          ripgrep \
-          fd-find \
-          bat \
-          zoxide \
-          curl \
-          wget \
-          build-essential
-      - |
-        mkdir -p ~/.local/bin
-        ln -sf $(which fdfind) ~/.local/bin/fd 2>/dev/null || true
-        ln -sf $(which batcat) ~/.local/bin/bat 2>/dev/null || true
-      - |
-        # Install eza (modern ls replacement)
-        if ! command -v eza &> /dev/null; then
-          echo "📦 Installing eza..."
-          sudo mkdir -p /etc/apt/keyrings 2>/dev/null
-          wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc 2>/dev/null | sudo gpg --dearmor -o /etc/apt/keyrings/gierens.gpg 2>/dev/null
-          echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | sudo tee /etc/apt/sources.list.d/gierens.list > /dev/null
-          sudo chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list 2>/dev/null
-          sudo apt update > /dev/null 2>&1
-          sudo apt install -y -qq eza
-        fi
-
-  gui:
-    desc: Prepare Windows GUI apps info
-    internal: true
-    silent: true
-    cmds:
-      - echo "# GUI apps configured"
 
   summary:
     desc: Display setup summary
@@ -91,8 +45,9 @@ tasks:
           echo "   (Navigate to your device_configs folder and use winget-packages.json)"
         fi
         echo ""
-        echo "   Includes: Windows Terminal, Chrome, Edge, Discord, Docker Desktop,"
-        echo "   VS Code, Alacritty, Steam, GeForce Now, Moonlight"
+        echo "   Includes: Windows Terminal, VS Code, Chrome, Edge, Discord, Docker Desktop,"
+        echo "   Claude Code, Antigravity, Cursor, Zed, Ollama, Bruno, Alacritty, Steam,"
+        echo "   GeForce Now, Moonlight"
         echo ""
         echo "3. 🔐 SSH Key"
         echo "   Generate your SSH key: task ssh"
@@ -106,14 +61,16 @@ tasks:
         echo "════════════════════════════════════════════════════════════════"
 
   update:
-    desc: Update all apt packages
+    desc: Update all packages via Homebrew
     cmds:
-      - sudo apt update
-      - sudo apt upgrade -y
-      - sudo apt autoremove -y
+      - |
+        echo "Updating Homebrew packages..."
+        brew update && brew upgrade && brew cleanup
 
   clean:
-    desc: Clean apt cache
+    desc: Clean Homebrew cache
     cmds:
-      - sudo apt clean
-      - sudo apt autoremove -y
+      - |
+        echo "Cleaning Homebrew cache..."
+        brew cleanup -s
+        rm -rf $(brew --cache)

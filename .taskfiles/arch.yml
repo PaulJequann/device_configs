@@ -4,73 +4,90 @@ tasks:
   setup:
     desc: Arch Linux system setup
     cmds:
-      - task: packages
-      - task: gui
-      - echo "Arch Linux setup complete!"
+      - task: install-homebrew
+      - task: docker
+      - task: yay
+      - echo "✓ Arch Linux setup complete!"
 
-  packages:
-    desc: Install essential packages via pacman
+  install-homebrew:
+    desc: Install Homebrew if not present
     cmds:
       - |
-        echo "Updating system..."
-        sudo pacman -Syu --noconfirm
-      - |
-        # Package list defined in configs/packages.yml
-        echo "Installing essential packages..."
-        sudo pacman -S --needed --noconfirm \
-          git \
-          stow \
-          zsh \
-          neovim \
-          tmux \
-          fzf \
-          ripgrep \
-          fd \
-          bat \
-          eza \
-          zoxide \
-          docker \
-          base-devel
-      - |
-        # Enable and start Docker service
-        sudo systemctl enable docker
-        sudo systemctl start docker
-        sudo usermod -aG docker $USER || true
-        echo "Note: Log out and back in for Docker group membership to take effect"
+        if ! command -v brew &> /dev/null; then
+          echo "Installing Homebrew..."
+          /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+          eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+        else
+          echo "✓ Homebrew already installed ($(brew --version | head -n1))"
+        fi
 
-  gui:
-    desc: Install GUI applications
+  docker:
+    desc: Configure Docker service
     cmds:
       - |
-        echo "Installing GUI applications..."
-        sudo pacman -S --needed --noconfirm \
-          alacritty \
-          discord \
-          chromium
+        echo "🐳 Configuring Docker service..."
+        if command -v docker &> /dev/null; then
+          sudo systemctl enable docker 2>/dev/null || true
+          sudo systemctl start docker 2>/dev/null || true
+          sudo usermod -aG docker $USER 2>/dev/null || true
+          echo "✓ Docker service configured"
+          echo "Note: Log out and back in for Docker group membership to take effect"
+        else
+          echo "Docker not installed yet. Install via Homebrew: brew install docker"
+        fi
+
+  yay:
+    desc: Install yay (AUR helper)
+    cmds:
       - |
-        echo ""
-        echo "Note: For Google Chrome and Microsoft Edge, use AUR:"
-        echo "  yay -S google-chrome"
-        echo "  yay -S microsoft-edge-stable-bin"
-      - |
-        # Install yay if not present
         if ! command -v yay &> /dev/null; then
-          echo ""
           echo "Installing yay (AUR helper)..."
           cd /tmp
-          git clone https://aur.archlinux.org/yay.git
+          git clone https://aur.archlinux.org/yay.git 2>/dev/null || true
           cd yay
           makepkg -si --noconfirm
           cd ~
+          echo "✓ yay installed"
+        else
+          echo "✓ yay already installed"
         fi
 
-  update:
-    desc: Update all pacman packages
+  gui:
+    desc: Install GUI applications via AUR
     cmds:
-      - sudo pacman -Syu --noconfirm
+      - |
+        echo "📦 Installing GUI applications..."
+        if command -v yay &> /dev/null; then
+          # AUR packages
+          yay -S --needed --noconfirm google-chrome microsoft-edge-stable-bin cursor-bin visual-studio-code-bin 2>/dev/null || true
+        else
+          echo "yay not installed. Run 'task arch:yay' first"
+        fi
+      - |
+        # Homebrew casks for Arch
+        brew install --cask alacritty discord ollama bruno 2>/dev/null || true
+
+  update:
+    desc: Update all packages (Homebrew + AUR)
+    cmds:
+      - |
+        echo "Updating Homebrew packages..."
+        brew update && brew upgrade && brew cleanup
+      - |
+        if command -v yay &> /dev/null; then
+          echo "Updating AUR packages..."
+          yay -Syu --noconfirm
+        fi
 
   clean:
-    desc: Clean pacman cache
+    desc: Clean package caches
     cmds:
-      - sudo pacman -Scc --noconfirm
-      - if command -v yay &> /dev/null; then yay -Sc --noconfirm; fi
+      - |
+        echo "Cleaning Homebrew cache..."
+        brew cleanup -s
+        rm -rf $(brew --cache)
+      - |
+        if command -v yay &> /dev/null; then
+          echo "Cleaning AUR cache..."
+          yay -Sc --noconfirm
+        fi

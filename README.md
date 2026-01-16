@@ -1,44 +1,27 @@
 # My Device Configuration
 
-Personal system configuration using [Task](https://taskfile.dev) for my macOS, Windows (WSL2), and Arch Linux machines.
+Personal system configuration using [Homebrew](https://brew.sh) and [Task](https://taskfile.dev) for my macOS, Windows (WSL2), and Arch Linux machines.
 
 > If this helps you configure your own systems, feel free to fork and adapt it.
 
 ## Supported Platforms
 
-- **macOS** - Homebrew-based setup
-- **Windows 11 + WSL2** - apt for Linux side, winget for Windows GUI apps
-- **Arch Linux** - pacman-based setup
+- **macOS** - Homebrew for everything
+- **Windows 11 + WSL2** - Homebrew for CLI, winget for Windows GUI apps
+- **Arch Linux** - Homebrew for CLI, AUR for Arch-specific GUI apps
 
-## Installation
-
-### Bootstrap
+## Quick Start
 
 ```bash
 # Clone this repo
 git clone git@github.com:PaulJequann/device_configs.git ~/.config/device_configs
 cd ~/.config/device_configs
 
-# Install Task
-curl -fsSL https://taskfile.dev/install.sh | sh -s -- -d -b ~/.local/bin
-export PATH="$HOME/.local/bin:$PATH"
-
-# Or use native package managers:
-# macOS: brew install go-task
-# Arch: sudo pacman -S go-task
-# Debian/Ubuntu: sudo sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
-
-# Run full setup
-task setup
+# Run bootstrap (installs Homebrew + Task + runs setup)
+./bootstrap.sh
 ```
 
-### What This Does
-
-1. Detects platform (macOS/WSL/Arch)
-2. Installs essential CLI tools
-3. Sets up terminal (zsh, oh-my-zsh, zgenom)
-4. Clones and stows dotfiles
-5. Optionally installs GUI apps
+That's it! The bootstrap script handles everything for a fresh system.
 
 ## Commands
 
@@ -46,39 +29,54 @@ task setup
 task --list          # Show all available tasks
 task detect          # Show current platform
 task setup           # Full setup for current platform
-task packages        # Install CLI tools only
+task packages        # Install CLI tools via Homebrew
 task terminal        # Setup zsh and plugins
 task dotfiles        # Clone and stow dotfiles
 task ssh             # Generate SSH key for this device
 task gui             # Install GUI applications
-task update          # Update all packages
+task sync            # Pull latest configs and install new packages
+task update          # Update all Homebrew packages
 task clean           # Clean package caches
 task check           # Check system status
 ```
 
 ## What Gets Installed
 
-### CLI Tools (all platforms)
-- git, stow
-- neovim, tmux, fzf
-- ripgrep, fd, bat, eza, zoxide
-- docker
+### CLI Tools (all platforms via Homebrew)
+
+```
+git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide bun go-task gemini-cli
+```
+
+### AI Coding Tools
+
+| Tool | macOS | WSL/Windows | Arch |
+|------|-------|-------------|------|
+| Claude Code | brew cask | winget | brew cask |
+| OpenCode | curl | curl | curl |
+| Gemini CLI | brew | brew | brew |
+| Antigravity | brew cask | winget | AUR |
+| Cursor | brew cask | winget | AUR |
+| Zed | brew cask | winget | AUR |
+| Beads (bd) | brew tap | brew tap | brew tap |
+| Codexbar | brew tap | brew tap | brew tap |
 
 ### GUI Apps
 
-**macOS**:
+**macOS** (brew cask):
+- Claude Code, Antigravity, Cursor, VS Code, Zed
 - Alacritty, Discord, Chrome, Edge
+- Ollama, Bruno, Docker
 
-**Windows** (import via winget):
+**Windows** (winget import):
 ```powershell
 # From PowerShell on Windows host
-winget import -i \\wsl.localhost\Ubuntu\home\YOUR_USERNAME\.config\device_configs\configs\winget-packages.json --accept-package-agreements --accept-source-agreements
+winget import -i "\\wsl.localhost\Ubuntu\home\YOUR_USERNAME\.config\device_configs\configs\winget-packages.json" --accept-package-agreements --accept-source-agreements
 ```
-Includes: Windows Terminal, Chrome, Edge, Discord, Docker Desktop, VS Code, Alacritty, Steam, GeForce Now, Moonlight
+Includes: Windows Terminal, VS Code, Chrome, Edge, Discord, Docker Desktop, Claude Code, Antigravity, Cursor, Zed, Ollama, Bruno, Alacritty, Steam, GeForce Now, Moonlight
 
-**Arch**:
-- Alacritty, Discord, Chromium
-- Chrome/Edge via AUR (yay -S google-chrome microsoft-edge-stable-bin)
+**Arch** (AUR via yay):
+- Google Chrome, Microsoft Edge, Cursor, VS Code
 
 ### What I Keep in Devcontainers
 
@@ -111,31 +109,50 @@ Run `task dotfiles` to clone and stow.
 ## Platform Notes
 
 ### macOS
-- Homebrew installs automatically
-- Docker Desktop provides Docker runtime
+- Homebrew installs automatically via bootstrap.sh
+- All apps install via Homebrew or Homebrew Cask
+- Docker Desktop via cask
 
 ### Windows 11 + WSL2
-- Install Docker Desktop on Windows, enable WSL2 integration
-- Use `task wsl:gui` to get the winget import command with full path
-- Winget package list: [configs/winget-packages.json](configs/winget-packages.json)
+- Homebrew on Linux (WSL2) for CLI tools
+- Windows GUI apps via winget import
+- Docker Desktop on Windows with WSL2 integration
+- Use `task gui` to get the winget import command with full path
 
 ### Arch Linux
-- Docker service starts automatically
+- Homebrew for CLI tools (cross-platform consistency)
+- yay (AUR helper) for Arch-specific packages
+- Docker service configured via systemd
 - Log out/in after setup for Docker group
-- yay (AUR helper) installed automatically
 
 ## Structure
 
 ```
 .
+├── bootstrap.sh                  # Fresh system bootstrap
 ├── Taskfile.yml                  # Main orchestrator
 ├── .taskfiles/                   # Platform-specific tasks
-│   ├── common.yml               # Shared tasks
+│   ├── common.yml               # Shared tasks (packages, terminal, dotfiles)
 │   ├── macos.yml                # macOS setup
 │   ├── wsl.yml                  # WSL2 setup
-│   ├── arch.yml                 # Arch setup
+│   ├── arch.yml                 # Arch setup (Docker systemd, yay)
 │   └── linux.yml                # Generic Linux fallback
 ├── configs/
+│   ├── packages.yml             # Package list documentation
 │   └── winget-packages.json     # Windows apps for winget import
 └── README.md                     # This file
 ```
+
+## Syncing Changes
+
+When you add new tools to this repo and want to update other machines:
+
+```bash
+task sync
+```
+
+This will:
+1. Pull latest device_configs
+2. Pull latest dotfiles
+3. Re-run dotfiles bootstrap
+4. Install any new packages

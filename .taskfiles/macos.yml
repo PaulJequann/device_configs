@@ -5,9 +5,7 @@ tasks:
     desc: macOS system setup
     cmds:
       - task: install-homebrew
-      - task: packages
-      - task: gui
-      - echo "macOS setup complete!"
+      - echo "✓ macOS setup complete!"
 
   install-homebrew:
     desc: Install Homebrew if not present
@@ -17,52 +15,22 @@ tasks:
           echo "Installing Homebrew..."
           /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
         else
-          echo "Homebrew already installed ($(brew --version | head -n1))"
+          echo "✓ Homebrew already installed ($(brew --version | head -n1))"
         fi
     status:
       - command -v brew
 
-  packages:
-    desc: Install essential packages via Homebrew
-    cmds:
-      - |
-        # Package list defined in configs/packages.yml
-        echo "Installing essential packages..."
-        brew install \
-          git \
-          stow \
-          zsh \
-          neovim \
-          tmux \
-          fzf \
-          ripgrep \
-          fd \
-          bat \
-          eza \
-          zoxide \
-          docker
-
-  gui:
-    desc: Install GUI applications via Homebrew Cask
-    cmds:
-      - |
-        echo "Installing GUI applications..."
-        brew install --cask \
-          alacritty \
-          discord \
-          google-chrome \
-          microsoft-edge
-      - echo "GUI applications installed!"
-
   update:
     desc: Update all Homebrew packages
     cmds:
-      - brew update
-      - brew upgrade
-      - brew cleanup
+      - |
+        echo "Updating Homebrew packages..."
+        brew update && brew upgrade && brew cleanup
 
   clean:
     desc: Clean Homebrew cache
     cmds:
-      - brew cleanup -s
-      - rm -rf "$(brew --cache)"
+      - |
+        echo "Cleaning Homebrew cache..."
+        brew cleanup -s
+        rm -rf "$(brew --cache)"
