@@ -1,7 +1,7 @@
 version: '3'
 
 vars:
-  DOTFILES_REPO: "git@github.com:PaulJequann/dotfiles.git"
+  DOTFILES_REPO: "git@github.com:PaulJequann/.dotfiles.git"
   DOTFILES_DIR: "{{.HOME}}/.dotfiles"
 
 tasks:

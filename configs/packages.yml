@@ -17,6 +17,7 @@ cli_tools:
   - bun
   - go-task
   - gemini-cli
+  - opencode
 
 # CLI Tools from taps
 cli_taps:
@@ -26,7 +27,6 @@ cli_taps:
 
 # CLI Tools via curl (no Homebrew formula)
 cli_curl:
-  - opencode  # curl -fsSL https://opencode.ai/install | bash
 
 # Arch Linux - Core CLI Tools (pacman -S)
 arch_pacman_cli_tools:
@@ -43,10 +43,17 @@ arch_pacman_cli_tools:
   - zoxide
   - gemini-cli
   - go-task
+  - uv
 
 # Arch Linux - AUR Tools (yay -S)
 arch_aur_cli_tools:
   - bun-bin # Prefer -bin for faster installation and stability
+  - opencode-bin
+  - beads-bin
+  - claude-code
+
+arch_homebrew_installs:
+  - beads_viewer
 
 # GUI Apps - macOS (brew install --cask)
 gui_macos:
@@ -62,7 +69,7 @@ gui_macos:
   - ollama
   - bruno
   - docker
-  - steipete/tap/codexbar  # cask version
+  - steipete/tap/codexbar # cask version
 
 # GUI Apps - Windows/WSL (winget import)
 # See configs/winget-packages.json for full list
@@ -90,3 +97,8 @@ gui_arch_aur:
   - microsoft-edge-stable-bin
   - cursor-bin
   - visual-studio-code-bin
+  - discord
+  - antigravity
+
+gui_arch_pacman:
+  - ghostty
