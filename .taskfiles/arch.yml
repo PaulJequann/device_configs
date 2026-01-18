@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 tasks:
   setup:
@@ -6,6 +6,7 @@ tasks:
     cmds:
       - task: yay
       - task: packages
+      - task: gui
       - task: docker
       - echo "✓ Arch Linux setup complete!"
 
@@ -14,11 +15,13 @@ tasks:
     cmds:
       - |
         echo "📦 Installing Arch CLI tools via pacman..."
-        sudo pacman -S --needed --noconfirm git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide gemini-cli go-task
+        ARCH_PACMAN_CLI_PACKAGES=(git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide gemini-cli uv)
+        sudo pacman -S --needed --noconfirm "${ARCH_PACMAN_CLI_PACKAGES[@]}"
       - |
         echo "📦 Installing Arch AUR tools via yay..."
         if command -v yay &> /dev/null; then
-          yay -S --needed --noconfirm bun-bin
+          ARCH_AUR_CLI_PACKAGES=(bun-bin opencode-bin beads-bin claude-code)
+          yay -S --needed --noconfirm "${ARCH_AUR_CLI_PACKAGES[@]}"
         else
           echo "⚠️ yay not installed, skipping AUR tools. Run 'task arch:yay' first."
         fi
@@ -59,11 +62,13 @@ tasks:
     cmds:
       - |
         echo "📦 Installing GUI applications via pacman..."
-        sudo pacman -S --needed --noconfirm alacritty discord ollama 2>/dev/null || true
+        GUI_ARCH_PACMAN_PACKAGES=(ghostty alacritty ollama)
+        sudo pacman -S --needed --noconfirm "${GUI_ARCH_PACMAN_PACKAGES[@]}" 2>/dev/null || true
       - |
         echo "📦 Installing GUI applications via AUR..."
         if command -v yay &> /dev/null; then
-          yay -S --needed --noconfirm google-chrome microsoft-edge-stable-bin cursor-bin visual-studio-code-bin bruno-bin 2>/dev/null || true
+          GUI_ARCH_AUR_PACKAGES=(google-chrome microsoft-edge-stable-bin cursor-bin visual-studio-code-bin discord antigravity)
+          yay -S --needed --noconfirm "${GUI_ARCH_AUR_PACKAGES[@]}" 2>/dev/null || true
         else
           echo "yay not installed. Run 'task arch:yay' first"
         fi

@@ -52,7 +52,7 @@ arch_aur_cli_tools:
   - beads-bin
   - claude-code
 
-arch_homebrew_installs:
+arch_brew_cli_tools:
   - beads_viewer
 
 # GUI Apps - macOS (brew install --cask)
@@ -102,3 +102,5 @@ gui_arch_aur:
 
 gui_arch_pacman:
   - ghostty
+  - alacritty
+  - ollama

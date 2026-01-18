@@ -8,7 +8,7 @@ Personal system configuration using [Homebrew](https://brew.sh) and [Task](https
 
 - **macOS** - Homebrew for everything
 - **Windows 11 + WSL2** - Homebrew for CLI, winget for Windows GUI apps
-- **Arch Linux** - Native `pacman` and `yay` (AUR) for CLI and GUI tools (Homebrew optional)
+- **Arch Linux** - Native `pacman` and `yay` for CLI and GUI tools plus an automatic Homebrew install for the cross-platform bits
 
 ## Quick Start
 
@@ -22,6 +22,8 @@ cd ~/.config/device_configs
 ```
 
 That's it! The bootstrap script handles everything for a fresh system.
+
+Bootstrap now retries the Homebrew installer once on failure and creates `~/bin/task`, so `task` always points to the `go-task` binary.
 
 ## Commands
 
@@ -45,45 +47,52 @@ task check           # Check system status
 ### CLI Tools
 
 **All platforms (Homebrew by default, pacman/AUR on Arch):**
+
 ```
 git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide bun go-task gemini-cli
 ```
 
 ### AI Coding Tools
 
-| Tool | macOS | WSL/Windows | Arch |
-|------|-------|-------------|------|
-| Claude Code | brew cask | winget | pacman |
-| OpenCode | curl | curl | curl |
-| Gemini CLI | brew | brew | pacman |
-| Antigravity | brew cask | winget | AUR |
-| Cursor | brew cask | winget | AUR |
-| Zed | brew cask | winget | AUR |
-| Beads (bd) | brew tap | brew tap | brew tap* |
-| Codexbar | brew tap | brew tap | brew tap* |
+| Tool        | macOS     | WSL/Windows | Arch       |
+| ----------- | --------- | ----------- | ---------- |
+| Claude Code | brew cask | winget      | pacman     |
+| OpenCode    | curl      | curl        | curl       |
+| Gemini CLI  | brew      | brew        | pacman     |
+| Antigravity | brew cask | winget      | AUR        |
+| Cursor      | brew cask | winget      | AUR        |
+| Zed         | brew cask | winget      | AUR        |
+| Beads (bd)  | brew tap  | brew tap    | brew tap\* |
+| Codexbar    | brew tap  | brew tap    | brew tap\* |
 
-\* *Homebrew remains available as an optional compatibility layer on Arch Linux.*
+_Homebrew installs automatically on Arch to manage the `arch_brew_cli_tools` (e.g., `beads_viewer`), while `pacman`/`yay` still drive the rest of the stack._
 
 ### GUI Apps
 
 **macOS** (brew cask):
+
 - Claude Code, Antigravity, Cursor, VS Code, Zed
 - Alacritty, Discord, Chrome, Edge
 - Ollama, Bruno, Docker
 
 **Windows** (winget import):
+
 ```powershell
 # From PowerShell on Windows host
 winget import -i "\\wsl.localhost\Ubuntu\home\YOUR_USERNAME\.config\device_configs\configs\winget-packages.json" --accept-package-agreements --accept-source-agreements
 ```
+
 Includes: Windows Terminal, VS Code, Chrome, Edge, Discord, Docker Desktop, Claude Code, Antigravity, Cursor, Zed, Ollama, Bruno, Alacritty, Steam, GeForce Now, Moonlight
 
-**Arch** (AUR via yay):
-- Google Chrome, Microsoft Edge, Cursor, VS Code
+**Arch** (pacman + AUR via yay):
+
+- Google Chrome, Microsoft Edge, Cursor, VS Code, Discord, Antigravity (AUR)
+- Ghostty, Alacritty, Ollama (pacman)
 
 ### What I Keep in Devcontainers
 
 Everything project-specific stays in devcontainers:
+
 - Language runtimes (Node, Python, etc.)
 - Language servers
 - Database tools
@@ -102,6 +111,7 @@ task ssh
 ## Dotfiles
 
 Update the repo URL in [Taskfile.yml](Taskfile.yml):
+
 ```yaml
 vars:
   DOTFILES_REPO: "git@github.com:PaulJequann/dotfiles.git"
@@ -112,30 +122,25 @@ Run `task dotfiles` to clone and stow.
 ## Platform Notes
 
 ### macOS
+
 - Homebrew installs automatically via bootstrap.sh
 - All apps install via Homebrew or Homebrew Cask
 - Docker Desktop via cask
 
 ### Windows 11 + WSL2
+
 - Homebrew on Linux (WSL2) for CLI tools
 - Windows GUI apps via winget import
 - Docker Desktop on Windows with WSL2 integration
 - Use `task gui` to get the winget import command with full path
 
 ### Arch Linux
-- Native `pacman` and `yay` (AUR) are used for CLI and GUI tools by default.
-- Homebrew is **not** installed by default on Arch but can be enabled with `DEVICE_CONFIGS_USE_BREW_ON_LINUX=1`.
+
+- Native `pacman` and `yay` (AUR) are used for CLI and GUI tools by default, and bootstrap now also installs Homebrew so the `arch_brew_cli_tools` list (like `beads_viewer`) stays in sync with macOS/WSL.
+- Homebrew install runs automatically (one retry) and `~/bin/task` is symlinked to the `go-task` binary so the `task` command works exactly like on other platforms.
 - `yay` (AUR helper) is installed automatically if not present.
 - Docker service configured via systemd.
-- Log out/in after setup for Docker group.
-
-#### Migration on Arch
-If you previously used Homebrew on Arch and want to switch to native packages:
-1. Run `./bootstrap.sh` to install `go-task` via `pacman`.
-2. Run `task setup` to install native packages.
-3. (Optional) Remove Homebrew-installed duplicates: `brew uninstall <package>` or uninstall Homebrew entirely if no longer needed.
-4. Ensure `/usr/bin` precedes Homebrew's path in your `$PATH` if you keep both.
-
+- Log out/in after setup for Docker group membership.
 
 ## Structure
 
@@ -164,6 +169,7 @@ If you previously installed tools via curl, use the migration script to move the
 ```
 
 This script:
+
 - Detects curl-based installations of: `bd`, `beads_viewer`, `bun`, `uv`, `opencode`
 - Uninstalls them (with confirmation)
 - Reinstalls via Homebrew
@@ -179,6 +185,7 @@ task sync
 ```
 
 This will:
+
 1. Pull latest device_configs
 2. Pull latest dotfiles
 3. Re-run dotfiles bootstrap

@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 vars:
   DOTFILES_REPO: "git@github.com:PaulJequann/.dotfiles.git"
@@ -18,33 +18,55 @@ tasks:
     silent: true
     cmds:
       - |
-        # Detect Arch and check for Brew override
-        USE_BREW_ON_LINUX=${DEVICE_CONFIGS_USE_BREW_ON_LINUX:-0}
-        if [ -f /etc/arch-release ] && [ "$USE_BREW_ON_LINUX" -eq 0 ]; then
-          task arch:packages
-        else
-          echo "📦 Installing core CLI tools via Homebrew..."
-          brew install git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide go-task gemini-cli
-        fi
-      - |
-        # Skip Homebrew-only taps/packages if on Arch and not using Brew
-        USE_BREW_ON_LINUX=${DEVICE_CONFIGS_USE_BREW_ON_LINUX:-0}
-        if [ -f /etc/arch-release ] && [ "$USE_BREW_ON_LINUX" -eq 0 ]; then
-          echo "📦 Skipping Homebrew-specific taps on Arch..."
-        else
+        COMMON_BREW_CLI_TOOLS=(git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide go-task gemini-cli)
+        ARCH_BREW_CLI_TOOLS=(beads_viewer)
+
+        install_brew_package() {
+          local pkg="$1"
+          if brew list "$pkg" &>/dev/null 2>&1; then
+            brew upgrade "$pkg" 2>/dev/null || true
+          else
+            brew install "$pkg"
+          fi
+        }
+
+        install_brew_packages() {
+          local pkg
+          for pkg in "$@"; do
+            install_brew_package "$pkg"
+          done
+        }
+
+        install_bun() {
           echo "📦 Installing bun via oven-sh/bun tap..."
           brew tap oven-sh/bun 2>/dev/null || true
-          if brew list oven-sh/bun/bun &>/dev/null 2>&1; then
+          if brew list oven-sh/bun/bun &>/dev/null; then
             brew upgrade oven-sh/bun/bun 2>/dev/null || true
           else
             brew install oven-sh/bun/bun
           fi
+        }
+
+        install_uv() {
           echo "📦 Installing uv..."
-          if brew list uv &>/dev/null 2>&1; then
+          if brew list uv &>/dev/null; then
             brew upgrade uv 2>/dev/null || true
           else
             brew install uv
           fi
+        }
+
+        install_beads_viewer() {
+          echo "📦 Installing beads_viewer via steveyegge/beads tap..."
+          brew tap steveyegge/beads 2>/dev/null || true
+          if brew list beads_viewer &>/dev/null 2>&1; then
+            brew upgrade beads_viewer 2>/dev/null || true
+          else
+            brew install beads_viewer
+          fi
+        }
+
+        install_beads_tools() {
           echo "📦 Installing beads tools via steveyegge/beads tap..."
           brew tap steveyegge/beads 2>/dev/null || true
           if brew list bd &>/dev/null 2>&1; then
@@ -52,25 +74,43 @@ tasks:
           else
             brew install steveyegge/beads/bd
           fi
-          if brew list beads_viewer &>/dev/null 2>&1; then
-            brew upgrade beads_viewer 2>/dev/null || true
-          else
-            brew install beads_viewer
+          install_beads_viewer
+        }
+
+        install_arch_brew_cli_tools() {
+          if [ ${#ARCH_BREW_CLI_TOOLS[@]} -eq 0 ]; then
+            return
           fi
-        fi
-      - |
-        echo "📦 Installing opencode..."
-        if command -v opencode &>/dev/null; then
-          echo "  ✓ opencode already installed"
+          echo "📦 Installing Arch-only Homebrew tools..."
+          local pkg
+          for pkg in "${ARCH_BREW_CLI_TOOLS[@]}"; do
+            if [ "$pkg" = "beads_viewer" ]; then
+              install_beads_viewer
+            else
+              install_brew_package "$pkg"
+            fi
+          done
+        }
+
+        if [ -f /etc/arch-release ]; then
+          echo "📦 Arch CLI tools handled via pacman/yay (see arch:packages)."
+          install_arch_brew_cli_tools
+          echo "📦 Skipping bun/uv/opencode Homebrew installs on Arch."
         else
-          echo "  Installing opencode via Homebrew..."
-          if brew list opencode &>/dev/null 2>&1; then
-            brew upgrade opencode 2>/dev/null || true
+          echo "📦 Installing core CLI tools via Homebrew..."
+          install_brew_packages "${COMMON_BREW_CLI_TOOLS[@]}"
+          install_bun
+          install_uv
+          install_beads_tools
+          echo "📦 Installing opencode..."
+          if command -v opencode &>/dev/null; then
+            echo "  ✓ opencode already installed"
           else
-            brew install opencode
+            echo "  Installing opencode via Homebrew..."
+            install_brew_package opencode
           fi
         fi
-      - |
+
         echo "✓ All packages installed/updated!"
 
   gui:
