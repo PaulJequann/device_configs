@@ -8,7 +8,7 @@ Personal system configuration using [Homebrew](https://brew.sh) and [Task](https
 
 - **macOS** - Homebrew for everything
 - **Windows 11 + WSL2** - Homebrew for CLI, winget for Windows GUI apps
-- **Arch Linux** - Homebrew for CLI, AUR for Arch-specific GUI apps
+- **Arch Linux** - Native `pacman` and `yay` (AUR) for CLI and GUI tools (Homebrew optional)
 
 ## Quick Start
 
@@ -42,8 +42,9 @@ task check           # Check system status
 
 ## What Gets Installed
 
-### CLI Tools (all platforms via Homebrew)
+### CLI Tools
 
+**All platforms (Homebrew by default, pacman/AUR on Arch):**
 ```
 git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide bun go-task gemini-cli
 ```
@@ -52,14 +53,16 @@ git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide bun go-task gemini-cli
 
 | Tool | macOS | WSL/Windows | Arch |
 |------|-------|-------------|------|
-| Claude Code | brew cask | winget | brew cask |
+| Claude Code | brew cask | winget | pacman |
 | OpenCode | curl | curl | curl |
-| Gemini CLI | brew | brew | brew |
+| Gemini CLI | brew | brew | pacman |
 | Antigravity | brew cask | winget | AUR |
 | Cursor | brew cask | winget | AUR |
 | Zed | brew cask | winget | AUR |
-| Beads (bd) | brew tap | brew tap | brew tap |
-| Codexbar | brew tap | brew tap | brew tap |
+| Beads (bd) | brew tap | brew tap | brew tap* |
+| Codexbar | brew tap | brew tap | brew tap* |
+
+\* *Homebrew remains available as an optional compatibility layer on Arch Linux.*
 
 ### GUI Apps
 
@@ -120,10 +123,19 @@ Run `task dotfiles` to clone and stow.
 - Use `task gui` to get the winget import command with full path
 
 ### Arch Linux
-- Homebrew for CLI tools (cross-platform consistency)
-- yay (AUR helper) for Arch-specific packages
-- Docker service configured via systemd
-- Log out/in after setup for Docker group
+- Native `pacman` and `yay` (AUR) are used for CLI and GUI tools by default.
+- Homebrew is **not** installed by default on Arch but can be enabled with `DEVICE_CONFIGS_USE_BREW_ON_LINUX=1`.
+- `yay` (AUR helper) is installed automatically if not present.
+- Docker service configured via systemd.
+- Log out/in after setup for Docker group.
+
+#### Migration on Arch
+If you previously used Homebrew on Arch and want to switch to native packages:
+1. Run `./bootstrap.sh` to install `go-task` via `pacman`.
+2. Run `task setup` to install native packages.
+3. (Optional) Remove Homebrew-installed duplicates: `brew uninstall <package>` or uninstall Homebrew entirely if no longer needed.
+4. Ensure `/usr/bin` precedes Homebrew's path in your `$PATH` if you keep both.
+
 
 ## Structure
 

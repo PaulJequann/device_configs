@@ -28,6 +28,26 @@ cli_taps:
 cli_curl:
   - opencode  # curl -fsSL https://opencode.ai/install | bash
 
+# Arch Linux - Core CLI Tools (pacman -S)
+arch_pacman_cli_tools:
+  - git
+  - stow
+  - zsh
+  - neovim
+  - tmux
+  - fzf
+  - ripgrep
+  - fd
+  - bat
+  - eza
+  - zoxide
+  - gemini-cli
+  - go-task
+
+# Arch Linux - AUR Tools (yay -S)
+arch_aur_cli_tools:
+  - bun-bin # Prefer -bin for faster installation and stability
+
 # GUI Apps - macOS (brew install --cask)
 gui_macos:
   - claude-code

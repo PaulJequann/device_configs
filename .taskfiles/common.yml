@@ -14,39 +14,49 @@ tasks:
       - echo "✓ Common setup complete!"
 
   packages:
-    desc: Install all packages via Homebrew
+    desc: Install all packages (Homebrew or platform-native)
     silent: true
     cmds:
       - |
-        echo "📦 Installing core CLI tools..."
-        brew install git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide go-task gemini-cli
-      - |
-        echo "📦 Installing bun via oven-sh/bun tap..."
-        brew tap oven-sh/bun 2>/dev/null || true
-        if brew list oven-sh/bun/bun &>/dev/null 2>&1; then
-          brew upgrade oven-sh/bun/bun 2>/dev/null || true
+        # Detect Arch and check for Brew override
+        USE_BREW_ON_LINUX=${DEVICE_CONFIGS_USE_BREW_ON_LINUX:-0}
+        if [ -f /etc/arch-release ] && [ "$USE_BREW_ON_LINUX" -eq 0 ]; then
+          task arch:packages
         else
-          brew install oven-sh/bun/bun
+          echo "📦 Installing core CLI tools via Homebrew..."
+          brew install git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide go-task gemini-cli
         fi
       - |
-        echo "📦 Installing uv..."
-        if brew list uv &>/dev/null 2>&1; then
-          brew upgrade uv 2>/dev/null || true
+        # Skip Homebrew-only taps/packages if on Arch and not using Brew
+        USE_BREW_ON_LINUX=${DEVICE_CONFIGS_USE_BREW_ON_LINUX:-0}
+        if [ -f /etc/arch-release ] && [ "$USE_BREW_ON_LINUX" -eq 0 ]; then
+          echo "📦 Skipping Homebrew-specific taps on Arch..."
         else
-          brew install uv
-        fi
-      - |
-        echo "📦 Installing beads tools via steveyegge/beads tap..."
-        brew tap steveyegge/beads 2>/dev/null || true
-        if brew list bd &>/dev/null 2>&1; then
-          brew upgrade bd 2>/dev/null || true
-        else
-          brew install steveyegge/beads/bd
-        fi
-        if brew list beads_viewer &>/dev/null 2>&1; then
-          brew upgrade beads_viewer 2>/dev/null || true
-        else
-          brew install beads_viewer
+          echo "📦 Installing bun via oven-sh/bun tap..."
+          brew tap oven-sh/bun 2>/dev/null || true
+          if brew list oven-sh/bun/bun &>/dev/null 2>&1; then
+            brew upgrade oven-sh/bun/bun 2>/dev/null || true
+          else
+            brew install oven-sh/bun/bun
+          fi
+          echo "📦 Installing uv..."
+          if brew list uv &>/dev/null 2>&1; then
+            brew upgrade uv 2>/dev/null || true
+          else
+            brew install uv
+          fi
+          echo "📦 Installing beads tools via steveyegge/beads tap..."
+          brew tap steveyegge/beads 2>/dev/null || true
+          if brew list bd &>/dev/null 2>&1; then
+            brew upgrade bd 2>/dev/null || true
+          else
+            brew install steveyegge/beads/bd
+          fi
+          if brew list beads_viewer &>/dev/null 2>&1; then
+            brew upgrade beads_viewer 2>/dev/null || true
+          else
+            brew install beads_viewer
+          fi
         fi
       - |
         echo "📦 Installing opencode..."

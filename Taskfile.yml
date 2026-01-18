@@ -92,7 +92,16 @@ tasks:
   gui:
     desc: Install GUI applications
     cmds:
-      - task: common:gui
+      - |
+        {{if eq OS "darwin"}}
+        task common:gui
+        {{else if eq OS "linux"}}
+        if [ -f /etc/arch-release ]; then
+          task arch:gui
+        else
+          task common:gui
+        fi
+        {{end}}
 
   update:
     desc: Update all packages via Homebrew
