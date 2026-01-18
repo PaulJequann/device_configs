@@ -18,8 +18,9 @@ tasks:
     silent: true
     cmds:
       - |
-        COMMON_BREW_CLI_TOOLS=(git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide go-task gemini-cli)
-        ARCH_BREW_CLI_TOOLS=(beads_viewer)
+        # Read package lists from packages.yml using yq
+        COMMON_BREW_CLI_TOOLS=($(yq -r '.cli_tools | join(" ")' configs/packages.yml))
+        ARCH_BREW_CLI_TOOLS=($(yq -r '.arch_brew_cli_tools | join(" ")' configs/packages.yml))
 
         install_brew_package() {
           local pkg="$1"
@@ -119,8 +120,8 @@ tasks:
       - |
         {{if eq OS "darwin"}}
         echo "📦 Installing macOS GUI apps via Homebrew Cask..."
-        brew install --cask claude-code antigravity cursor visual-studio-code zed alacritty discord google-chrome microsoft-edge ollama bruno docker 2>/dev/null || true
-        brew install --cask steipete/tap/codexbar 2>/dev/null || true
+        CASKS=$(yq -r '.gui_macos | join(" ")' configs/packages.yml)
+        brew install --cask $CASKS 2>/dev/null || true
         {{else}}
         echo ""
         echo "════════════════════════════════════════════════════════════════"

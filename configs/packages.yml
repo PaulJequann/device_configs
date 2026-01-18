@@ -3,6 +3,7 @@
 
 # CLI Tools (brew install)
 cli_tools:
+  - yq
   - git
   - stow
   - zsh
@@ -30,6 +31,7 @@ cli_curl:
 
 # Arch Linux - Core CLI Tools (pacman -S)
 arch_pacman_cli_tools:
+  - yq
   - git
   - stow
   - zsh
@@ -44,6 +46,20 @@ arch_pacman_cli_tools:
   - gemini-cli
   - go-task
   - uv
+
+arch_pacman_hyprland_dependencies:
+  - waybar
+  - mako
+  - fcitx5
+  - hyprpaper
+  - hypridle
+  - hyprpolkitagent
+
+arch_aur_hyprland_dependencies:
+  - hyprdynamicmonitors-bin
+
+arch_z13_pacman_cli_tools:
+  - asusctl
 
 # Arch Linux - AUR Tools (yay -S)
 arch_aur_cli_tools:

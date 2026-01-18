@@ -6,6 +6,8 @@ tasks:
     cmds:
       - task: yay
       - task: packages
+      - task: z13
+      - task: hyprland
       - task: gui
       - task: docker
       - echo "✓ Arch Linux setup complete!"
@@ -14,14 +16,20 @@ tasks:
     desc: Install core CLI tools via pacman and yay
     cmds:
       - |
+        # Bootstrap: ensure yq is installed for YAML parsing
+        if ! command -v yq &> /dev/null; then
+          echo "📦 Installing yq (required for reading packages.yml)..."
+          sudo pacman -S --needed --noconfirm yq
+        fi
+      - |
         echo "📦 Installing Arch CLI tools via pacman..."
-        ARCH_PACMAN_CLI_PACKAGES=(git stow zsh neovim tmux fzf ripgrep fd bat eza zoxide gemini-cli uv)
-        sudo pacman -S --needed --noconfirm "${ARCH_PACMAN_CLI_PACKAGES[@]}"
+        PACKAGES=$(yq -r '.arch_pacman_cli_tools | join(" ")' configs/packages.yml)
+        sudo pacman -S --needed --noconfirm $PACKAGES
       - |
         echo "📦 Installing Arch AUR tools via yay..."
         if command -v yay &> /dev/null; then
-          ARCH_AUR_CLI_PACKAGES=(bun-bin opencode-bin beads-bin claude-code)
-          yay -S --needed --noconfirm "${ARCH_AUR_CLI_PACKAGES[@]}"
+          PACKAGES=$(yq -r '.arch_aur_cli_tools | join(" ")' configs/packages.yml)
+          yay -S --needed --noconfirm $PACKAGES
         else
           echo "⚠️ yay not installed, skipping AUR tools. Run 'task arch:yay' first."
         fi
@@ -62,15 +70,51 @@ tasks:
     cmds:
       - |
         echo "📦 Installing GUI applications via pacman..."
-        GUI_ARCH_PACMAN_PACKAGES=(ghostty alacritty ollama)
-        sudo pacman -S --needed --noconfirm "${GUI_ARCH_PACMAN_PACKAGES[@]}" 2>/dev/null || true
+        PACKAGES=$(yq -r '.gui_arch_pacman | join(" ")' configs/packages.yml)
+        sudo pacman -S --needed --noconfirm $PACKAGES 2>/dev/null || true
       - |
         echo "📦 Installing GUI applications via AUR..."
         if command -v yay &> /dev/null; then
-          GUI_ARCH_AUR_PACKAGES=(google-chrome microsoft-edge-stable-bin cursor-bin visual-studio-code-bin discord antigravity)
-          yay -S --needed --noconfirm "${GUI_ARCH_AUR_PACKAGES[@]}" 2>/dev/null || true
+          PACKAGES=$(yq -r '.gui_arch_aur | join(" ")' configs/packages.yml)
+          yay -S --needed --noconfirm $PACKAGES 2>/dev/null || true
         else
           echo "yay not installed. Run 'task arch:yay' first"
+        fi
+
+  hyprland:
+    desc: Install Hyprland window manager dependencies
+    cmds:
+      - |
+        printf "🪟 Are you using Hyprland? (y/n) "
+        read -r REPLY
+        if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
+          echo "📦 Installing Hyprland dependencies via pacman..."
+          PACKAGES=$(yq -r '.arch_pacman_hyprland_dependencies | join(" ")' configs/packages.yml)
+          sudo pacman -S --needed --noconfirm $PACKAGES
+
+          if command -v yay &> /dev/null; then
+            echo "📦 Installing Hyprland AUR dependencies..."
+            PACKAGES=$(yq -r '.arch_aur_hyprland_dependencies | join(" ")' configs/packages.yml)
+            yay -S --needed --noconfirm $PACKAGES
+          fi
+          echo "✓ Hyprland dependencies installed"
+        else
+          echo "⏭️ Skipping Hyprland dependencies"
+        fi
+
+  z13:
+    desc: Install Asus ROG Flow Z13 specific tools
+    cmds:
+      - |
+        PRODUCT_NAME=$(cat /sys/class/dmi/id/product_name 2>/dev/null || echo "")
+        if [[ "$PRODUCT_NAME" == *"Flow Z13"* ]] || [[ "$PRODUCT_NAME" == *"GZ301"* ]]; then
+          echo "🎮 Detected Asus ROG Flow Z13"
+          echo "📦 Installing Z13-specific tools..."
+          PACKAGES=$(yq -r '.arch_z13_pacman_cli_tools | join(" ")' configs/packages.yml)
+          sudo pacman -S --needed --noconfirm $PACKAGES
+          echo "✓ Z13 tools installed"
+        else
+          echo "⏭️ Not a Z13 device, skipping (detected: $PRODUCT_NAME)"
         fi
 
   update:
