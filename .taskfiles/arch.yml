@@ -97,6 +97,17 @@ tasks:
             PACKAGES=$(yq -r '.arch_aur_hyprland_dependencies | join(" ")' configs/packages.yml)
             yay -S --needed --noconfirm $PACKAGES
           fi
+          if systemctl --user --version &> /dev/null; then
+            if [ -f "$HOME/.config/systemd/user/wallpaper-cycle.timer" ]; then
+              echo "🖼️ Enabling wallpaper-cycle.timer..."
+              systemctl --user daemon-reload
+              systemctl --user enable --now wallpaper-cycle.timer
+            else
+              echo "⚠️ wallpaper-cycle.timer not found. Re-run stow to pick up systemd user units."
+            fi
+          else
+            echo "⚠️ systemctl --user not available, skipping wallpaper-cycle.timer enablement."
+          fi
           echo "✓ Hyprland dependencies installed"
         else
           echo "⏭️ Skipping Hyprland dependencies"
@@ -109,10 +120,51 @@ tasks:
         PRODUCT_NAME=$(cat /sys/class/dmi/id/product_name 2>/dev/null || echo "")
         if [[ "$PRODUCT_NAME" == *"Flow Z13"* ]] || [[ "$PRODUCT_NAME" == *"GZ301"* ]]; then
           echo "🎮 Detected Asus ROG Flow Z13"
+
+          # Install Z13-specific packages
           echo "📦 Installing Z13-specific tools..."
           PACKAGES=$(yq -r '.arch_z13_pacman_cli_tools | join(" ")' configs/packages.yml)
           sudo pacman -S --needed --noconfirm $PACKAGES
-          echo "✓ Z13 tools installed"
+
+          # Setup Thunderbolt PCI rescan
+          echo "⚡ Setting up Thunderbolt PCI rescan..."
+          sudo tee /usr/local/bin/thunderbolt-rescan.sh > /dev/null << 'SCRIPT'
+        #!/bin/bash
+        echo 1 > /sys/bus/pci/rescan
+        SCRIPT
+          sudo chmod +x /usr/local/bin/thunderbolt-rescan.sh
+
+          sudo tee /etc/udev/rules.d/98-thunderbolt-rescan.rules > /dev/null << 'RULE'
+        ACTION=="change", SUBSYSTEM=="thunderbolt", ATTR{authorized}=="1", RUN+="/usr/local/bin/thunderbolt-rescan.sh"
+        RULE
+          sudo udevadm control --reload-rules
+          echo "✓ Thunderbolt PCI rescan configured"
+
+          # Setup SDDM monitor configuration
+          echo "🖥️ Setting up SDDM monitor configuration..."
+
+          # Create Xsetup_monitors script
+          sudo mkdir -p /usr/share/sddm/scripts
+          sudo tee /usr/share/sddm/scripts/Xsetup_monitors > /dev/null << 'SCRIPT'
+#!/bin/sh
+# Check if external monitor (e.g., DP-2) is connected
+if xrandr | grep -q "HDMI-A-1 connected"; then
+    xrandr --output HDMI-A-1 --primary --mode 3840x2160 --pos 0x0 --rotate normal --output eDP-1 --off
+else
+    xrandr --output eDP-1 --primary --mode 2560x1600 --pos 0x0 --rotate normal
+fi
+SCRIPT
+          sudo chmod +x /usr/share/sddm/scripts/Xsetup_monitors
+
+          # Create SDDM config
+          sudo mkdir -p /etc/sddm.conf.d
+          sudo tee /etc/sddm.conf.d/10-monitor.conf > /dev/null << 'CONF'
+[X11]
+DisplayCommand=/usr/share/sddm/scripts/Xsetup_monitors
+CONF
+          echo "✓ SDDM monitor configuration configured"
+
+          echo "✓ Z13 setup complete"
         else
           echo "⏭️ Not a Z13 device, skipping (detected: $PRODUCT_NAME)"
         fi

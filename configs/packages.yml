@@ -54,12 +54,20 @@ arch_pacman_hyprland_dependencies:
   - hyprpaper
   - hypridle
   - hyprpolkitagent
+  - nwg-look
 
 arch_aur_hyprland_dependencies:
   - hyprdynamicmonitors-bin
+  - walker-bin
+  - ttf-jetbrains-mono-nerd
+  - catppuccin-gtk-theme-mocha
+  - tokyonight-gtk-theme-git
+  - awww-git
+  - sddm-silent-theme
 
 arch_z13_pacman_cli_tools:
   - asusctl
+  - rog-control-center
 
 # Arch Linux - AUR Tools (yay -S)
 arch_aur_cli_tools:
