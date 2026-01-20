@@ -55,6 +55,7 @@ arch_pacman_hyprland_dependencies:
   - hypridle
   - hyprpolkitagent
   - nwg-look
+  - hyprlock
 
 arch_aur_hyprland_dependencies:
   - hyprdynamicmonitors-bin

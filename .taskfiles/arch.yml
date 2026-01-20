@@ -1,5 +1,8 @@
 version: "3"
 
+vars:
+  PKG_CONFIG: "configs/packages.yml"
+
 tasks:
   setup:
     desc: Arch Linux system setup
@@ -12,194 +15,164 @@ tasks:
       - task: docker
       - echo "✓ Arch Linux setup complete!"
 
-  packages:
-    desc: Install core CLI tools via pacman and yay
+  install-yq:
+    internal: true
     cmds:
       - |
-        # Bootstrap: ensure yq is installed for YAML parsing
         if ! command -v yq &> /dev/null; then
-          echo "📦 Installing yq (required for reading packages.yml)..."
+          echo "📦 Installing yq..."
           sudo pacman -S --needed --noconfirm yq
         fi
+
+  packages:
+    desc: Install core CLI tools via pacman and yay
+    deps: [install-yq]
+    cmds:
+      - echo "📦 Installing Arch CLI tools..."
+      - sudo pacman -S --needed --noconfirm $(yq -r '.arch_pacman_cli_tools | join(" ")' {{.PKG_CONFIG}})
       - |
-        echo "📦 Installing Arch CLI tools via pacman..."
-        PACKAGES=$(yq -r '.arch_pacman_cli_tools | join(" ")' configs/packages.yml)
-        sudo pacman -S --needed --noconfirm $PACKAGES
-      - |
-        echo "📦 Installing Arch AUR tools via yay..."
         if command -v yay &> /dev/null; then
-          PACKAGES=$(yq -r '.arch_aur_cli_tools | join(" ")' configs/packages.yml)
-          yay -S --needed --noconfirm $PACKAGES
+          yay -S --needed --noconfirm $(yq -r '.arch_aur_cli_tools | join(" ")' {{.PKG_CONFIG}})
         else
-          echo "⚠️ yay not installed, skipping AUR tools. Run 'task arch:yay' first."
+          echo "⚠️ yay not found, skipping AUR tools."
+        fi
+
+  yay:
+    desc: Install yay (AUR helper)
+    status:
+      - command -v yay
+    cmds:
+      - echo "Installing yay..."
+      - git clone https://aur.archlinux.org/yay.git /tmp/yay
+      - cd /tmp/yay && makepkg -si --noconfirm
+      - rm -rf /tmp/yay
+      - echo "✓ yay installed"
+
+  hyprland:
+    desc: Install Hyprland and SDDM configuration
+    deps: [install-yq]
+    cmds:
+      - |
+        # Prompt the user for confirmation
+        read -p "🪟 Are you using Hyprland? (y/N): " REPLY
+        if [[ "$REPLY" =~ ^[Yy]$ ]]; then
+          echo "📦 Installing Hyprland dependencies via pacman..."
+          sudo pacman -S --needed --noconfirm $(yq -r '.arch_pacman_hyprland_dependencies | join(" ")' {{.PKG_CONFIG}})
+
+          # Check for AUR dependencies
+          if command -v yay &> /dev/null; then
+            echo "📦 Installing Hyprland AUR dependencies..."
+            yay -S --needed --noconfirm $(yq -r '.arch_aur_hyprland_dependencies | join(" ")' {{.PKG_CONFIG}})
+          fi
+
+          # 1. Ensure the random wallpaper script is executable.
+          echo "📂 Setting permissions for wallpaper script..."
+          chmod +x /home/pj/.dotfiles/arch-hyprland/.config/hypr/scripts/hyprlock-wallpaper.sh
+          chmod +x /home/pj/.dotfiles/arch-hyprland/.config/hypr/scripts/update-primary-monitor.sh
+          chmod +x /home/pj/.dotfiles/arch-hyprland/.config/hypr/scripts/lid-event.sh
+          chmod +x /home/pj/.dotfiles/arch-hyprland/.config/hypr/scripts/hypr-monitor-watch.sh
+          # 2. Create directory and symlink systemd units
+          echo "🔗 Linking systemd wallpaper units..."
+          mkdir -p ~/.config/systemd/user/
+          ln -sf /home/pj/.dotfiles/arch-hyprland/.config/systemd/user/hyprlock-wallpaper.service ~/.config/systemd/user/hyprlock-wallpaper.service
+          ln -sf /home/pj/.dotfiles/arch-hyprland/.config/systemd/user/hyprlock-wallpaper.timer ~/.config/systemd/user/hyprlock-wallpaper.timer
+          ln -sf /home/pj/.dotfiles/arch-hyprland/.config/systemd/user/hypr-monitor-watch.service ~/.config/systemd/user/hypr-monitor-watch.service
+
+          # Enable wallpaper timer if the unit exists
+          if [ -f "$HOME/.config/systemd/user/wallpaper-cycle.timer" ]; then
+            echo "🖼️  Enabling wallpaper-cycle.timer..."
+            systemctl --user daemon-reload
+            systemctl --user enable --now wallpaper-cycle.timer
+            systemctl --user enable --now hyprlock-wallpaper.timer
+            systemctl --user enable hypr-monitor-watch.service
+          fi
+
+          # Main SDDM Config
+          echo "🖥️  Configuring /etc/sddm.conf for virtual keyboard and silent theme..."
+          sudo tee /etc/sddm.conf > /dev/null <<EOF
+        [Autologin]
+        Session=hyprland
+
+        [General]
+        InputMethod=qtvirtualkeyboard
+        GreeterEnvironment=QML2_IMPORT_PATH=/usr/share/sddm/themes/silent/components/,QT_IM_MODULE=qtvirtualkeyboard
+
+        [Theme]
+        Current=silent
+        EOF
+
+          echo "✓ Hyprland dependencies and SDDM setup complete"
+        else
+          echo "⏭️  Skipping Hyprland setup"
+        fi
+
+  z13:
+    desc: Install Asus ROG Flow Z13 specific tools and monitor configs
+    deps: [install-yq]
+    cmds:
+      - |
+        PRODUCT=$(cat /sys/class/dmi/id/product_name 2>/dev/null)
+        if [[ "$PRODUCT" == *"Flow Z13"* || "$PRODUCT" == *"GZ301"* ]]; then
+          echo "🎮 ROG Flow Z13 Detected"
+          sudo pacman -S --needed --noconfirm $(yq -r '.arch_z13_pacman_cli_tools | join(" ")' {{.PKG_CONFIG}})
+
+          # Thunderbolt Rescan Script
+          sudo tee /usr/local/bin/thunderbolt-rescan.sh > /dev/null <<'EOF'
+        #!/bin/bash
+        echo 1 > /sys/bus/pci/rescan
+        EOF
+          sudo chmod +x /usr/local/bin/thunderbolt-rescan.sh
+          echo 'ACTION=="change", SUBSYSTEM=="thunderbolt", ATTR{authorized}=="1", RUN+="/usr/local/bin/thunderbolt-rescan.sh"' | sudo tee /etc/udev/rules.d/98-thunderbolt-rescan.rules
+          sudo udevadm control --reload-rules
+
+          # SDDM X11 Monitor Setup
+          sudo mkdir -p /usr/share/sddm/scripts
+          sudo tee /usr/share/sddm/scripts/Xsetup_monitors > /dev/null <<'EOF'
+        #!/bin/sh
+        if xrandr | grep -q "HDMI-A-1 connected"; then
+            xrandr --output HDMI-A-1 --primary --mode 3840x2160 --pos 0x0 --rotate normal --output eDP-1 --off
+        else
+            xrandr --output eDP-1 --primary --mode 2560x1600 --pos 0x0 --rotate normal
+        fi
+        EOF
+          sudo chmod +x /usr/share/sddm/scripts/Xsetup_monitors
+
+          sudo mkdir -p /etc/sddm.conf.d
+          sudo tee /etc/sddm.conf.d/10-monitor.conf > /dev/null <<'EOF'
+        [X11]
+        DisplayCommand=/usr/share/sddm/scripts/Xsetup_monitors
+        EOF
+          echo "✓ Z13 optimizations and monitor configs applied"
         fi
 
   docker:
     desc: Configure Docker service
     cmds:
       - |
-        echo "🐳 Configuring Docker service..."
         if command -v docker &> /dev/null; then
-          sudo systemctl enable docker 2>/dev/null || true
-          sudo systemctl start docker 2>/dev/null || true
-          sudo usermod -aG docker $USER 2>/dev/null || true
+          sudo systemctl enable --now docker
+          sudo usermod -aG docker $USER
           echo "✓ Docker service configured"
-          echo "Note: Log out and back in for Docker group membership to take effect"
-        else
-          echo "Docker not installed yet. Install via Homebrew: brew install docker"
-        fi
-
-  yay:
-    desc: Install yay (AUR helper)
-    cmds:
-      - |
-        if ! command -v yay &> /dev/null; then
-          echo "Installing yay (AUR helper)..."
-          cd /tmp
-          git clone https://aur.archlinux.org/yay.git 2>/dev/null || true
-          cd yay
-          makepkg -si --noconfirm
-          cd ~
-          echo "✓ yay installed"
-        else
-          echo "✓ yay already installed"
         fi
 
   gui:
-    desc: Install GUI applications via pacman and AUR
+    desc: Install GUI applications
+    deps: [install-yq]
     cmds:
+      - sudo pacman -S --needed --noconfirm $(yq -r '.gui_arch_pacman | join(" ")' {{.PKG_CONFIG}})
       - |
-        echo "📦 Installing GUI applications via pacman..."
-        PACKAGES=$(yq -r '.gui_arch_pacman | join(" ")' configs/packages.yml)
-        sudo pacman -S --needed --noconfirm $PACKAGES 2>/dev/null || true
-      - |
-        echo "📦 Installing GUI applications via AUR..."
         if command -v yay &> /dev/null; then
-          PACKAGES=$(yq -r '.gui_arch_aur | join(" ")' configs/packages.yml)
-          yay -S --needed --noconfirm $PACKAGES 2>/dev/null || true
-        else
-          echo "yay not installed. Run 'task arch:yay' first"
-        fi
-
-  hyprland:
-    desc: Install Hyprland window manager dependencies
-    cmds:
-      - |
-        printf "🪟 Are you using Hyprland? (y/n) "
-        read -r REPLY
-        if [ "$REPLY" = "y" ] || [ "$REPLY" = "Y" ]; then
-          echo "📦 Installing Hyprland dependencies via pacman..."
-          PACKAGES=$(yq -r '.arch_pacman_hyprland_dependencies | join(" ")' configs/packages.yml)
-          sudo pacman -S --needed --noconfirm $PACKAGES
-
-          if command -v yay &> /dev/null; then
-            echo "📦 Installing Hyprland AUR dependencies..."
-            PACKAGES=$(yq -r '.arch_aur_hyprland_dependencies | join(" ")' configs/packages.yml)
-            yay -S --needed --noconfirm $PACKAGES
-          fi
-          if systemctl --user --version &> /dev/null; then
-            if [ -f "$HOME/.config/systemd/user/wallpaper-cycle.timer" ]; then
-              echo "🖼️ Enabling wallpaper-cycle.timer..."
-              systemctl --user daemon-reload
-              systemctl --user enable --now wallpaper-cycle.timer
-            else
-              echo "⚠️ wallpaper-cycle.timer not found. Re-run stow to pick up systemd user units."
-            fi
-          else
-            echo "⚠️ systemctl --user not available, skipping wallpaper-cycle.timer enablement."
-          fi
-          echo "✓ Hyprland dependencies installed"
-        else
-          echo "⏭️ Skipping Hyprland dependencies"
-        fi
-
-  z13:
-    desc: Install Asus ROG Flow Z13 specific tools
-    cmds:
-      - |
-        PRODUCT_NAME=$(cat /sys/class/dmi/id/product_name 2>/dev/null || echo "")
-        if [[ "$PRODUCT_NAME" == *"Flow Z13"* ]] || [[ "$PRODUCT_NAME" == *"GZ301"* ]]; then
-          echo "🎮 Detected Asus ROG Flow Z13"
-
-          # Install Z13-specific packages
-          echo "📦 Installing Z13-specific tools..."
-          PACKAGES=$(yq -r '.arch_z13_pacman_cli_tools | join(" ")' configs/packages.yml)
-          sudo pacman -S --needed --noconfirm $PACKAGES
-
-          # Setup Thunderbolt PCI rescan
-          echo "⚡ Setting up Thunderbolt PCI rescan..."
-          sudo tee /usr/local/bin/thunderbolt-rescan.sh > /dev/null << 'SCRIPT'
-        #!/bin/bash
-        echo 1 > /sys/bus/pci/rescan
-        SCRIPT
-          sudo chmod +x /usr/local/bin/thunderbolt-rescan.sh
-
-          sudo tee /etc/udev/rules.d/98-thunderbolt-rescan.rules > /dev/null << 'RULE'
-        ACTION=="change", SUBSYSTEM=="thunderbolt", ATTR{authorized}=="1", RUN+="/usr/local/bin/thunderbolt-rescan.sh"
-        RULE
-          sudo udevadm control --reload-rules
-          echo "✓ Thunderbolt PCI rescan configured"
-
-          # Setup SDDM monitor configuration
-          echo "🖥️ Setting up SDDM monitor configuration..."
-
-          # Create Xsetup_monitors script
-          sudo mkdir -p /usr/share/sddm/scripts
-          sudo tee /usr/share/sddm/scripts/Xsetup_monitors > /dev/null << 'SCRIPT'
-#!/bin/sh
-# Check if external monitor (e.g., DP-2) is connected
-if xrandr | grep -q "HDMI-A-1 connected"; then
-    xrandr --output HDMI-A-1 --primary --mode 3840x2160 --pos 0x0 --rotate normal --output eDP-1 --off
-else
-    xrandr --output eDP-1 --primary --mode 2560x1600 --pos 0x0 --rotate normal
-fi
-SCRIPT
-          sudo chmod +x /usr/share/sddm/scripts/Xsetup_monitors
-
-          # Create SDDM config
-          sudo mkdir -p /etc/sddm.conf.d
-          sudo tee /etc/sddm.conf.d/10-monitor.conf > /dev/null << 'CONF'
-[X11]
-DisplayCommand=/usr/share/sddm/scripts/Xsetup_monitors
-CONF
-          echo "✓ SDDM monitor configuration configured"
-
-          echo "✓ Z13 setup complete"
-        else
-          echo "⏭️ Not a Z13 device, skipping (detected: $PRODUCT_NAME)"
+          yay -S --needed --noconfirm $(yq -r '.gui_arch_aur | join(" ")' {{.PKG_CONFIG}})
         fi
 
   update:
-    desc: Update all packages (pacman + AUR + optional Homebrew)
+    desc: Update all packages
     cmds:
-      - |
-        echo "Updating Arch packages (pacman)..."
-        sudo pacman -Syu --noconfirm
-      - |
-        if command -v yay &> /dev/null; then
-          echo "Updating AUR packages..."
-          yay -Syu --noconfirm
-        fi
-      - |
-        if command -v brew &> /dev/null; then
-          echo "Updating Homebrew packages..."
-          brew update && brew upgrade && brew cleanup
-        fi
+      - sudo pacman -Syu --noconfirm
+      - "if command -v yay &> /dev/null; then yay -Syu --noconfirm; fi"
 
   clean:
     desc: Clean package caches
     cmds:
-      - |
-        echo "Cleaning pacman cache..."
-        sudo pacman -Sc --noconfirm
-      - |
-        if command -v yay &> /dev/null; then
-          echo "Cleaning AUR cache..."
-          yay -Sc --noconfirm
-        fi
-      - |
-        if command -v brew &> /dev/null; then
-          echo "Cleaning Homebrew cache..."
-          brew cleanup -s
-          rm -rf $(brew --cache)
-        fi
+      - sudo pacman -Sc --noconfirm
+      - "if command -v yay &> /dev/null; then yay -Sc --noconfirm; fi"
